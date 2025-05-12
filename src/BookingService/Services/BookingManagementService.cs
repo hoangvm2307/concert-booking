@@ -1,16 +1,10 @@
-// File: ConcertBookingPlatform/src/BookingService/Services/BookingManagementService.cs
 using BookingService.Models;
 using BookingService.Models.Configuration;
 using BookingService.Models.DTOs;
 using BookingService.Models.DTOs.External;
 using BookingService.Models.Results;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using System;
-using System.Linq;
-using System.Net.Http;
 using System.Text.Json;
-using System.Threading.Tasks;
 
 namespace BookingService.Services
 {
@@ -52,7 +46,7 @@ namespace BookingService.Services
             {
                 var httpClient = _httpClientFactory.CreateClient();
                 var concertServiceUrl = _serviceUrls.ConcertService ?? throw new InvalidOperationException("ConcertService URL not configured.");
-                
+
                 _logger.LogInformation("Fetching concert details from: {Url}", $"{concertServiceUrl}/api/concerts/{bookingRequest.ConcertId}");
                 var response = await httpClient.GetAsync($"{concertServiceUrl}/api/concerts/{bookingRequest.ConcertId}");
 
@@ -116,7 +110,7 @@ namespace BookingService.Services
                     return BookingOperationResult<Booking>.Failure("An error occurred while updating ticket inventory.", BookingOperationErrorType.InventoryUpdateFailed, StatusCodes.Status500InternalServerError);
                 case DecrementResult.Success:
                     _logger.LogInformation("Ticket successfully reserved in Redis for ConcertID: {ConcertId}, SeatTypeID: {SeatTypeId} by UserID: {UserId}", bookingRequest.ConcertId, bookingRequest.SeatTypeId, userId);
-                    break; // Continue
+                    break;
                 default:
                     return BookingOperationResult<Booking>.Failure("Unknown error with ticket inventory.", BookingOperationErrorType.ServiceError, StatusCodes.Status500InternalServerError);
             }
@@ -147,7 +141,7 @@ namespace BookingService.Services
                 {
                     _logger.LogError("Failed to roll back ticket inventory for ConcertID: {ConcertId}, SeatTypeID: {SeatTypeId}. Manual correction needed.", bookingRequest.ConcertId, bookingRequest.SeatTypeId);
                 }
-                return BookingOperationResult<Booking>.Failure("An error occurred while saving your booking. Ticket reservation was rolled back if possible.", BookingOperationErrorType.DatabaseError, StatusCodes.Status500InternalServerError);
+                return BookingOperationResult<Booking>.Failure("An error occurred while saving your booking. Ticket reservation was rolled back if possible.", BookingOperationErrorType.ServiceError, StatusCodes.Status500InternalServerError);
             }
 
             // 6. Send Confirmation Email
@@ -156,7 +150,7 @@ namespace BookingService.Services
                 var emailSubject = $"Booking Confirmation - {createdBooking.ConcertName}";
                 var emailHtmlBody = $@"<h1>Booking Confirmed!</h1><p>Dear Customer,</p><p>Your booking for the concert '<strong>{createdBooking.ConcertName}</strong>' ({createdBooking.SeatTypeName}) is confirmed!</p><ul><li><strong>Booking ID:</strong> {createdBooking.Id}</li><li><strong>Concert:</strong> {createdBooking.ConcertName}</li><li><strong>Seat Type:</strong> {createdBooking.SeatTypeName}</li><li><strong>Date:</strong> {concertDetail.StartTime.ToLocalTime():yyyy-MM-dd}</li><li><strong>Time:</strong> {concertDetail.StartTime.ToLocalTime():HH:mm}</li><li><strong>Price Paid:</strong> {createdBooking.PricePaid:C}</li></ul><p>Thank you for booking with us!</p>";
                 var emailTextBody = $"Your booking for {createdBooking.ConcertName} ({createdBooking.SeatTypeName}) is confirmed! Booking ID: {createdBooking.Id}. Date: {concertDetail.StartTime.ToLocalTime():yyyy-MM-dd HH:mm}. Price: {createdBooking.PricePaid:C}.";
-                
+
                 await _emailService.SendEmailAsync(userEmail, emailSubject, emailHtmlBody, emailTextBody);
                 _logger.LogInformation("Booking confirmation email process initiated for BookingID {BookingId} to {UserEmail}", createdBooking.Id, userEmail);
             }
@@ -165,7 +159,7 @@ namespace BookingService.Services
                 _logger.LogError(emailEx, "Failed to send booking confirmation email for BookingID {BookingId} to {UserEmail}, but booking was successful.", createdBooking.Id, userEmail);
             }
 
-            return BookingOperationResult<Booking>.Success(createdBooking); // Return the created booking
+            return BookingOperationResult<Booking>.Success(createdBooking);
         }
 
         public async Task<BookingOperationResult<Booking>> CancelBookingAsync(string userId, string userEmail, string bookingId)
@@ -187,8 +181,7 @@ namespace BookingService.Services
             {
                 return BookingOperationResult<Booking>.Failure($"Booking cannot be cancelled. Current status: {booking.Status}.", BookingOperationErrorType.BookingNotCancellable, StatusCodes.Status409Conflict);
             }
-
-            // Optional: Check if concert has already started
+ 
             try
             {
                 var httpClient = _httpClientFactory.CreateClient();
@@ -217,16 +210,16 @@ namespace BookingService.Services
             if (incrementResult == IncrementResult.Error || incrementResult == IncrementResult.KeyNotFound)
             {
                 _logger.LogError("CancelBooking: Failed to increment ticket inventory for ConcertID {ConcertId}, SeatTypeID {SeatTypeId} for booking {BookingId}. Result: {IncrementResult}. Manual intervention might be needed.", booking.ConcertId, booking.SeatTypeId, bookingId, incrementResult);
-                 if (incrementResult == IncrementResult.Error)
+                if (incrementResult == IncrementResult.Error)
                 {
                     return BookingOperationResult<Booking>.Failure("Failed to update ticket inventory. Booking not cancelled.", BookingOperationErrorType.InventoryUpdateFailed, StatusCodes.Status500InternalServerError);
                 }
-                 _logger.LogWarning("CancelBooking: Ticket inventory key was not found for ConcertID {ConcertId}, SeatTypeID {SeatTypeId} during cancellation of booking {BookingId}. This is unexpected.", booking.ConcertId, booking.SeatTypeId, bookingId);
-                 // Decide if this is a hard stop or if we proceed to cancel DB record
+                _logger.LogWarning("CancelBooking: Ticket inventory key was not found for ConcertID {ConcertId}, SeatTypeID {SeatTypeId} during cancellation of booking {BookingId}. This is unexpected.", booking.ConcertId, booking.SeatTypeId, bookingId);
+                // Decide if this is a hard stop or if we proceed to cancel DB record
             }
             else
             {
-                 _logger.LogInformation("CancelBooking: Ticket inventory successfully incremented for ConcertID {ConcertId}, SeatTypeID {SeatTypeId}", booking.ConcertId, booking.SeatTypeId);
+                _logger.LogInformation("CancelBooking: Ticket inventory successfully incremented for ConcertID {ConcertId}, SeatTypeID {SeatTypeId}", booking.ConcertId, booking.SeatTypeId);
             }
 
 
@@ -236,7 +229,7 @@ namespace BookingService.Services
                 _logger.LogError("CancelBooking: Failed to update booking status to Cancelled in DB for BookingID {BookingId} after inventory increment.", bookingId);
                 // Attempt to roll back Redis increment if DB update failed
                 // This is complex and needs careful consideration for atomicity
-                return BookingOperationResult<Booking>.Failure("Failed to finalize booking cancellation after inventory update. Please contact support.", BookingOperationErrorType.DatabaseError, StatusCodes.Status500InternalServerError);
+                return BookingOperationResult<Booking>.Failure("Failed to finalize booking cancellation after inventory update. Please contact support.", BookingOperationErrorType.ServiceError, StatusCodes.Status500InternalServerError);
             }
 
             try
@@ -252,7 +245,7 @@ namespace BookingService.Services
                 _logger.LogError(emailEx, "Failed to send booking cancellation email for BookingID {BookingId} to {UserEmail}, but cancellation was successful.", updatedBooking.Id, userEmail);
             }
 
-            return BookingOperationResult<Booking>.SuccessNoContent(); // Return success for cancellation
+            return BookingOperationResult<Booking>.SuccessNoContent();
         }
     }
 }

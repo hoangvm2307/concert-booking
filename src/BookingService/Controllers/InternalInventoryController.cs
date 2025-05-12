@@ -1,14 +1,11 @@
 using Microsoft.AspNetCore.Mvc;
 using BookingService.Services;
-using System.Threading.Tasks;
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
 namespace BookingService.Controllers
 {
-    
     [ApiController]
-    [Route("api/internal/inventory")] 
+    [Route("api/internal/inventory")]
     public class InternalInventoryController : ControllerBase
     {
         private readonly TicketInventoryService _ticketInventoryService;
@@ -59,13 +56,11 @@ namespace BookingService.Controllers
 
         [HttpPost("disable-concert/{concertId}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)] // If concertId itself is not meaningful to inventory
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> DisableConcertInventory(string concertId)
         {
             _logger.LogInformation("Received request to disable inventory for ConcertID: {ConcertId}", concertId);
 
-            // This will attempt to delete all keys matching "tickets:concertId:*"
-            // TicketInventoryService needs a new method for this.
             bool success = await _ticketInventoryService.ClearInventoryForConcertAsync(concertId);
 
             if (success)
@@ -75,7 +70,6 @@ namespace BookingService.Controllers
             }
             else
             {
-                // This might happen if there were no keys to delete, which is not necessarily an error for this operation.
                 _logger.LogWarning("No inventory keys found or cleared for ConcertID: {ConcertId}. This might be normal if already cleared or never initialized.", concertId);
                 return Ok(new { message = $"No inventory keys found/cleared for concert {concertId} (might be normal)." });
             }

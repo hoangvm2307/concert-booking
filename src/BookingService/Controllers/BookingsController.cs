@@ -84,7 +84,6 @@ namespace BookingService.Controllers
             };
         }
 
-
         [HttpPost]
         [ProducesResponseType(typeof(BookingResponseDto), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]

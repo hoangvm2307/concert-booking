@@ -1,11 +1,5 @@
-// File: ConcertBookingPlatform/src/ConcertService/Data/DataSeeder.cs
 using ConcertService.Models;
 using ConcertService.Services;
-using MongoDB.Driver; 
-using Microsoft.Extensions.Logging; // Required for ILogger
-using System; // Required for IServiceProvider
-using System.Collections.Generic; // Required for List
-using System.Linq; // Required for .Any()
 
 namespace ConcertService.Data
 {
@@ -13,7 +7,7 @@ namespace ConcertService.Data
     {
         public static async Task SeedConcertsAsync(ConcertManagementService concertManagementService, IServiceProvider services)
         {
-            var logger = services.GetRequiredService<ILogger<Program>>(); // Get logger instance
+            var logger = services.GetRequiredService<ILogger<Program>>();
 
             if (await concertManagementService.IsConcertsCollectionEmptyAsync())
             {
@@ -24,7 +18,6 @@ namespace ConcertService.Data
                 {
                     try
                     {
-                        // CreateConcertAsync in ConcertManagementService now handles notifying BookingService
                         await concertManagementService.CreateConcertAsync(concert);
                         logger.LogInformation("Seeded concert: {ConcertName}", concert.Name);
                     }
@@ -42,7 +35,7 @@ namespace ConcertService.Data
 
         private static List<Concert> GetSampleConcerts()
         {
-            int currentYear = DateTime.UtcNow.Year; // For example, 2025
+            int currentYear = DateTime.UtcNow.Year;
 
             return new List<Concert>
             {
@@ -93,7 +86,7 @@ namespace ConcertService.Data
                     },
                     CreatedAt = DateTime.UtcNow
                 },
-                new Concert 
+                new Concert
                 {
                     Name = "Yesterday's Legends - Encore Performance (Past Test)", // Renamed slightly for clarity
                     Venue = "Historic Royal Hall",

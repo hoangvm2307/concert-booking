@@ -2,24 +2,20 @@ using ConcertService.Models.Configuration;
 using ConcertService.Services;
 using ConcertService.Data;
 using ConcertService.BackgroundServices;
+using ConcertService.Repositories;
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. Configure MongoDB Settings
-builder.Services.Configure<MongoDbSettings>(
-    builder.Configuration.GetSection("MongoDbSettings"));
-
-// 2. Register ConcertManagementService
-builder.Services.AddSingleton<ConcertManagementService>(); // Or AddScoped
+builder.Services.Configure<MongoDbSettings>(builder.Configuration.GetSection("MongoDbSettings"));
 builder.Services.Configure<ServiceUrls>(builder.Configuration.GetSection("ServiceUrls"));
-builder.Services.AddHttpClient();
-// Configure Redis settings
-builder.Services.Configure<RedisSettings>(
-    builder.Configuration.GetSection("RedisSettings"));
-builder.Services.AddHostedService<ConcertStatusUpdaterService>();
-// --- Crucial for Controllers ---
-builder.Services.AddControllers(); // This discovers and registers your controllers
-// --- End Crucial for Controllers ---
+builder.Services.Configure<RedisSettings>(builder.Configuration.GetSection("RedisSettings"));
 
+builder.Services.AddHttpClient();
+builder.Services.AddSingleton<IConcertRepository, ConcertRepository>();
+builder.Services.AddScoped<IConcertLogicService, ConcertLogicService>();
+
+builder.Services.AddHostedService<ConcertStatusUpdaterService>();
+
+builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
@@ -48,14 +44,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "ConcertService API v1"));
 }
 
-// app.UseHttpsRedirection(); // Usually commented out for Docker non-HTTPS internal traffic
-
-app.UseRouting(); // Good to have explicitly before UseAuthorization and MapControllers
-
-app.UseAuthorization(); // Even if not actively used yet, good practice
-
-// --- Crucial for mapping controller routes ---
-app.MapControllers(); // This tells the app to use the routes defined in your controllers
-// --- End Crucial for mapping controller routes ---
-
+app.UseRouting();
+app.UseAuthorization();
+app.MapControllers();
 app.Run();

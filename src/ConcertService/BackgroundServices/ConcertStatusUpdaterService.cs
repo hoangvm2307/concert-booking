@@ -1,14 +1,6 @@
-using System;
-using System.Linq;
-using System.Net.Http;
-using System.Text.Json;
-using System.Threading;
-using System.Threading.Tasks;
-using ConcertService.Models.Configuration; // For ServiceUrls
+using ConcertService.Models.Configuration;
+using ConcertService.Repositories;
 using ConcertService.Services;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace ConcertService.BackgroundServices
@@ -16,10 +8,10 @@ namespace ConcertService.BackgroundServices
     public class ConcertStatusUpdaterService : BackgroundService
     {
         private readonly ILogger<ConcertStatusUpdaterService> _logger;
-        private readonly IServiceProvider _serviceProvider; // To create scopes for scoped services
-        private readonly ServiceUrls _serviceUrls; // To call BookingService
+        private readonly IServiceProvider _serviceProvider;
+        private readonly ServiceUrls _serviceUrls;
         private Timer? _timer;
-        private readonly TimeSpan _checkInterval = TimeSpan.FromMinutes(1); // Check every 1 minute
+        private readonly TimeSpan _checkInterval = TimeSpan.FromMinutes(1);
 
         public ConcertStatusUpdaterService(
             ILogger<ConcertStatusUpdaterService> logger,
@@ -37,22 +29,21 @@ namespace ConcertService.BackgroundServices
 
             _timer = new Timer(DoWork, null, TimeSpan.Zero, _checkInterval);
 
-            return Task.CompletedTask; // Timer will do the work
+            return Task.CompletedTask;
         }
 
         private async void DoWork(object? state)
         {
             _logger.LogInformation("ConcertStatusUpdaterService is working. Current time: {time}", DateTimeOffset.Now);
 
-            // Create a scope to resolve scoped services like ConcertManagementService
             using (var scope = _serviceProvider.CreateScope())
             {
-                var concertManagementService = scope.ServiceProvider.GetRequiredService<ConcertManagementService>();
+                var concertRepository = scope.ServiceProvider.GetRequiredService<IConcertRepository>();
                 var httpClientFactory = scope.ServiceProvider.GetRequiredService<IHttpClientFactory>();
 
                 try
                 {
-                    var concertsToDisable = await concertManagementService.GetConcertsToDisableBookingAsync(DateTime.UtcNow);
+                    var concertsToDisable = await concertRepository.GetConcertsToDisableBookingAsync(DateTime.UtcNow);
 
                     if (!concertsToDisable.Any())
                     {
@@ -67,15 +58,13 @@ namespace ConcertService.BackgroundServices
                         _logger.LogInformation("Disabling bookings for concert ID: {ConcertId}, Name: {ConcertName}, StartTime: {StartTime}",
                             concert.Id, concert.Name, concert.StartTime);
 
-                        // Update IsBookingEnabled in ConcertService's DB
                         concert.IsBookingEnabled = false;
-                        bool updateResult = await concertManagementService.UpdateConcertAsync(concert.Id, concert);
+                        bool updateResult = await concertRepository.UpdateConcertAsync(concert.Id, concert);
 
                         if (updateResult)
                         {
                             _logger.LogInformation("Successfully updated IsBookingEnabled for concert ID: {ConcertId} in local DB.", concert.Id);
 
-                            // Notify BookingService to disable/clear inventory in Redis
                             await NotifyBookingServiceToDisableInventoryAsync(httpClientFactory, concert.Id);
                         }
                         else
@@ -106,9 +95,7 @@ namespace ConcertService.BackgroundServices
 
                 _logger.LogInformation("Notifying BookingService to disable inventory for ConcertID {ConcertId} at {Url}", concertId, disableInventoryUrl);
 
-                // This is a POST request, even if it doesn't have a complex body,
-                // to indicate an action/command.
-                var response = await httpClient.PostAsync(disableInventoryUrl, null); // No body needed for this specific call
+                var response = await httpClient.PostAsync(disableInventoryUrl, null);
 
                 if (response.IsSuccessStatusCode)
                 {

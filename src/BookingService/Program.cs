@@ -13,21 +13,18 @@ builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("JwtSet
 builder.Services.Configure<ServiceUrls>(builder.Configuration.GetSection("ServiceUrls"));
 builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
 
-// 2. Register MongoDB related services (BookingStorageService will be created next)
+
 builder.Services.AddSingleton<BookingStorageService>();
-// 3. Register Redis ConnectionMultiplexer
 builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
 {
     var redisSettings = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<RedisSettings>>().Value;
-    // Ensure exceptions during connect are handled or allowed to propagate for startup failure
     var configurationOptions = ConfigurationOptions.Parse(redisSettings.ConnectionString);
-    configurationOptions.AbortOnConnectFail = true; // Fail fast if Redis is not available on startup
+    configurationOptions.AbortOnConnectFail = true;
     return ConnectionMultiplexer.Connect(configurationOptions);
 });
 
-
 builder.Services.AddScoped<TicketInventoryService>();
-
+builder.Services.AddScoped<IBookingManagementService, BookingManagementService>();
 builder.Services.AddScoped<IEmailService, MailKitEmailService>();
 
 var jwtSettings = builder.Configuration.GetSection("JwtSettings").Get<JwtSettings>();
@@ -96,14 +93,11 @@ builder.Services.AddSwaggerGen(c =>
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "BookingService API v1"));
 }
-
-// app.UseHttpsRedirection();
 
 app.UseRouting();
 app.UseAuthentication();
