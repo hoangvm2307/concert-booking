@@ -1,0 +1,437 @@
+{
+	"info": {
+		"_postman_id": "0af23367-0bc8-4b96-8c1d-585e77dc23fe",
+		"name": "Concert Booking Platform API",
+		"description": "API collection for testing the Concert Ticket Booking Platform microservices.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "27244810",
+		"_collection_link": "https://koifish-3578.postman.co/workspace/My-Workspace~16175006-6833-4f16-8e99-be887ec6c944/collection/27244810-0af23367-0bc8-4b96-8c1d-585e77dc23fe?action=share&source=collection_link&creator=27244810"
+	},
+	"item": [
+		{
+			"name": "AuthService",
+			"item": [
+				{
+					"name": "Register User",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"username\": \"testuser_pm\",\n  \"email\": \"testuser_pm@example.com\",\n  \"password\": \"Password123!\"\n}"
+						},
+						"url": {
+							"raw": "{{auth_base_url}}/auth/register",
+							"host": [
+								"{{auth_base_url}}"
+							],
+							"path": [
+								"auth",
+								"register"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Login User",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    var jsonData = pm.response.json();",
+									"    pm.environment.set(\"jwt_token\", jsonData.token);",
+									"    console.log(\"JWT Token set to environment variable: jwt_token\");",
+									"} else {",
+									"    console.error(\"Login failed or token not found in response.\");",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"username\": \"testuser_pm\",\n  \"password\": \"Password123!\"\n}"
+						},
+						"url": {
+							"raw": "{{auth_base_url}}/auth/login",
+							"host": [
+								"{{auth_base_url}}"
+							],
+							"path": [
+								"auth",
+								"login"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"description": "Requests for the Authentication Service"
+		},
+		{
+			"name": "ConcertService",
+			"item": [
+				{
+					"name": "Create Concert",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    var jsonData = pm.response.json();",
+									"    pm.environment.set(\"concertId\", jsonData.id);",
+									"    console.log(\"Concert ID set to environment variable: concertId - \" + jsonData.id);",
+									"    if (jsonData.seatTypes && jsonData.seatTypes.length > 0) {",
+									"        pm.environment.set(\"seatTypeId\", jsonData.seatTypes[0].id);",
+									"        console.log(\"First SeatType ID set to environment variable: seatTypeId - \" + jsonData.seatTypes[0].id);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Postman Test Concert - The Virtual Bytes\",\n  \"venue\": \"Digital Domain Arena\",\n  \"date\": \"2026-10-20T00:00:00Z\",\n  \"startTime\": \"2026-10-20T20:00:00Z\",\n  \"description\": \"An electrifying performance by The Virtual Bytes, live from Postman!\",\n  \"seatTypes\": [\n    {\n      \"name\": \"General Admission\",\n      \"price\": 55.00,\n      \"totalSeats\": 200\n    },\n    {\n      \"name\": \"VIP Pixel Package\",\n      \"price\": 120.00,\n      \"totalSeats\": 50\n    }\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{concert_base_url}}/concerts",
+							"host": [
+								"{{concert_base_url}}"
+							],
+							"path": [
+								"concerts"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List All Concerts",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{concert_base_url}}/concerts",
+							"host": [
+								"{{concert_base_url}}"
+							],
+							"path": [
+								"concerts"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Concert by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{concert_base_url}}/concerts/{{concertId}}",
+							"host": [
+								"{{concert_base_url}}"
+							],
+							"path": [
+								"concerts",
+								"{{concertId}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Add Seat Type to Concert",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Early Bird Special\",\n  \"price\": 45.00,\n  \"totalSeats\": 100\n}"
+						},
+						"url": {
+							"raw": "{{concert_base_url}}/concerts/{{concertId}}/seattypes",
+							"host": [
+								"{{concert_base_url}}"
+							],
+							"path": [
+								"concerts",
+								"{{concertId}}",
+								"seattypes"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"description": "Requests for the Concert Service"
+		},
+		{
+			"name": "BookingService",
+			"item": [
+				{
+					"name": "Create Booking",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    var jsonData = pm.response.json();",
+									"    pm.environment.set(\"bookingId\", jsonData.id);",
+									"    console.log(\"Booking ID set to environment variable: bookingId - \" + jsonData.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"concertId\": \"{{concertId}}\",\n  \"seatTypeId\": \"{{seatTypeId}}\"\n}"
+						},
+						"url": {
+							"raw": "{{booking_base_url}}/bookings",
+							"host": [
+								"{{booking_base_url}}"
+							],
+							"path": [
+								"bookings"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get My Bookings",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{booking_base_url}}/bookings/mybookings",
+							"host": [
+								"{{booking_base_url}}"
+							],
+							"path": [
+								"bookings",
+								"mybookings"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Booking by ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{booking_base_url}}/bookings/{{bookingId}}",
+							"host": [
+								"{{booking_base_url}}"
+							],
+							"path": [
+								"bookings",
+								"{{bookingId}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Cancel Booking",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{booking_base_url}}/bookings/{{bookingId}}",
+							"host": [
+								"{{booking_base_url}}"
+							],
+							"path": [
+								"bookings",
+								"{{bookingId}}"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"description": "Requests for the Booking Service"
+		},
+		{
+			"name": "Internal Endpoints (BookingService Inventory)",
+			"item": [
+				{
+					"name": "Initialize Inventory (Internal)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"concertId\": \"{{concertId}}\",\n  \"seatTypes\": [\n    {\n      \"seatTypeId\": \"{{seatTypeId}}\",\n      \"count\": 100\n    }\n    // Add more seat types if needed for the target concert\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{booking_base_url}}/internal/inventory/initialize",
+							"host": [
+								"{{booking_base_url}}"
+							],
+							"path": [
+								"internal",
+								"inventory",
+								"initialize"
+							]
+						},
+						"description": "Manually initialize/reset inventory for a concert. Called by ConcertService during seeding or updates."
+					},
+					"response": []
+				},
+				{
+					"name": "Disable Concert Inventory (Internal)",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{booking_base_url}}/internal/inventory/disable-concert/{{concertId}}",
+							"host": [
+								"{{booking_base_url}}"
+							],
+							"path": [
+								"internal",
+								"inventory",
+								"disable-concert",
+								"{{concertId}}"
+							]
+						},
+						"description": "Called by ConcertService background job to clear Redis inventory for a concert that has started."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Seat Type Inventory (Public)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{booking_base_url}}/inventory/concert/{{concertId}}/seattype/{{seatTypeId}}",
+							"host": [
+								"{{booking_base_url}}"
+							],
+							"path": [
+								"inventory",
+								"concert",
+								"{{concertId}}",
+								"seattype",
+								"{{seatTypeId}}"
+							]
+						},
+						"description": "Called by ConcertService to get real-time remaining ticket count."
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "auth_base_url",
+			"value": "http://localhost:5001/api",
+			"type": "string"
+		},
+		{
+			"key": "concert_base_url",
+			"value": "http://localhost:5002/api",
+			"type": "string"
+		},
+		{
+			"key": "booking_base_url",
+			"value": "http://localhost:5003/api",
+			"type": "string"
+		}
+	]
+}

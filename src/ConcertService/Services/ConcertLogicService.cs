@@ -17,17 +17,6 @@ namespace ConcertService.Services
         private readonly ServiceUrls _serviceUrls;
         private readonly ILogger<ConcertLogicService> _logger;
 
-        private class InitializeInventoryRequestInternalDto
-        {
-            public string? ConcertId { get; set; }
-            public List<SeatTypeInventoryInfoInternalDto> SeatTypes { get; set; } = new();
-        }
-        private class SeatTypeInventoryInfoInternalDto
-        {
-            public string? SeatTypeId { get; set; }
-            public int Count { get; set; }
-        }
-
         public ConcertLogicService(
             IConcertRepository concertRepository,
             IHttpClientFactory httpClientFactory,
@@ -85,7 +74,6 @@ namespace ConcertService.Services
                 _logger.LogError(ex, "Exception while notifying BookingService for ConcertID: {ConcertId}", concert.Id);
             }
         }
-
 
         private async Task<ConcertResponseDto> MapConcertToDtoWithRealtimeInventoryAsync(Concert concert)
         {

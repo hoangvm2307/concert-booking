@@ -1,7 +1,4 @@
 using StackExchange.Redis;
-using Microsoft.Extensions.Logging;
-using System;
-using System.Threading.Tasks;
 
 namespace BookingService.Services
 {
@@ -10,12 +7,6 @@ namespace BookingService.Services
         private readonly IConnectionMultiplexer _redis;
         private readonly ILogger<TicketInventoryService> _logger;
 
-        // Lua script for atomically decrementing ticket count if it's greater than 0.
-        // KEYS[1] = the key for the ticket count (e.g., tickets:concertId:seatTypeId)
-        // Returns:
-        // 1 if successfully decremented
-        // 0 if ticket count was already 0 (sold out)
-        // -1 if the key does not exist
         private const string DecrementTicketsLuaScript = @"
             local current_tickets = redis.call('GET', KEYS[1])
             if current_tickets == false then
@@ -29,12 +20,6 @@ namespace BookingService.Services
             end
         ";
 
-        // Lua script for incrementing ticket count.
-        // KEYS[1] = the key for the ticket count
-        // Returns:
-        // 1 if successfully incremented (or key created and set to 1)
-        // -1 if the key does not exist and cannot be incremented (should not happen with INCR)
-        // This is simpler, INCR handles non-existent keys by creating them and setting to 0 first.
         private const string IncrementTicketsLuaScript = @"
             if redis.call('EXISTS', KEYS[1]) == 1 then
                 redis.call('INCR', KEYS[1])
@@ -53,7 +38,6 @@ namespace BookingService.Services
 
         private string GetTicketKey(string concertId, string seatTypeId)
         {
-            // Sanitize inputs if necessary, though ObjectIds are generally safe.
             return $"tickets:{concertId}:{seatTypeId}";
         }
 
@@ -135,9 +119,6 @@ namespace BookingService.Services
 
             _logger.LogInformation("Attempting to clear inventory keys matching pattern: {KeyPattern}", keyPattern);
 
-            // Iteratively scan and delete keys.
-            // Note: For a very large number of keys, consider using SCAN with a cursor to avoid blocking.
-            // However, for the number of seat types per concert, this should be fine.
             var keysToDelete = new List<RedisKey>();
             await foreach (var key in server.KeysAsync(pattern: keyPattern))
             {
@@ -162,7 +143,7 @@ namespace BookingService.Services
     {
         Success,
         SoldOut,
-        KeyNotFound, // Indicates the ticket type might not be initialized
+        KeyNotFound,
         Error
     }
     public enum IncrementResult

@@ -1,5 +1,3 @@
-using System.Threading.Tasks;
-
 namespace BookingService.Services
 {
     public interface IEmailService

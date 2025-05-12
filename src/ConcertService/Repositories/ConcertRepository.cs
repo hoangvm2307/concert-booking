@@ -9,11 +9,9 @@ namespace ConcertService.Repositories
     public class ConcertRepository : IConcertRepository
     {
         private readonly IMongoCollection<Concert> _concertsCollection;
-        private readonly ILogger<ConcertRepository> _logger; // Good practice to have logger
+        private readonly ILogger<ConcertRepository> _logger;
 
-        public ConcertRepository(
-            IOptions<MongoDbSettings> mongoDbSettings,
-            ILogger<ConcertRepository> logger) // Add logger
+        public ConcertRepository(IOptions<MongoDbSettings> mongoDbSettings, ILogger<ConcertRepository> logger)
         {
             var mongoClient = new MongoClient(mongoDbSettings.Value.ConnectionString);
             var mongoDatabase = mongoClient.GetDatabase(mongoDbSettings.Value.DatabaseName);
@@ -36,7 +34,7 @@ namespace ConcertService.Repositories
         public async Task<Concert> CreateConcertAsync(Concert newConcert)
         {
             _logger.LogInformation("Creating new concert '{ConcertName}' in database.", newConcert.Name);
-            // Ensure IDs for concert and seat types are generated if not provided
+
             if (string.IsNullOrEmpty(newConcert.Id))
             {
                 newConcert.Id = ObjectId.GenerateNewId().ToString();
@@ -47,13 +45,8 @@ namespace ConcertService.Repositories
                 {
                     seatType.Id = ObjectId.GenerateNewId().ToString();
                 }
-                // RemainingSeats is typically handled by business logic or initial setup,
-                // but for consistency, a repository might ensure it's set based on TotalSeats if not otherwise specified.
-                // However, this is more of a business rule, so ConcertLogicService should ensure this.
-                // For now, we assume ConcertLogicService prepares the newConcert object correctly.
             }
             await _concertsCollection.InsertOneAsync(newConcert);
-            // newConcert.Id is now guaranteed to be populated by MongoDB driver or our manual generation
             return newConcert;
         }
 
@@ -64,19 +57,14 @@ namespace ConcertService.Repositories
             {
                 newSeatType.Id = ObjectId.GenerateNewId().ToString();
             }
-            // Similar to CreateConcertAsync, RemainingSeats setup is more of a business rule.
-
             var filter = Builders<Concert>.Filter.Eq(c => c.Id, concertId);
             var update = Builders<Concert>.Update.Push(c => c.SeatTypes, newSeatType);
             var result = await _concertsCollection.UpdateOneAsync(filter, update);
 
-            if (result.IsAcknowledged && result.ModifiedCount > 0)
-            {
-                // Return the updated concert so the caller has the full context including the new seat type with its ID
-                return await GetByIdAsync(concertId);
-            }
+            if (result.IsAcknowledged && result.ModifiedCount > 0) return await GetByIdAsync(concertId);
+
             _logger.LogWarning("Failed to add seat type '{SeatTypeName}' to concert ID: {ConcertId}. Update not acknowledged or no document modified.", newSeatType.Name, concertId);
-            return null; // Indicates failure or concert not found
+            return null;
         }
 
         public async Task<bool> UpdateConcertAsync(string id, Concert updatedConcert)
@@ -91,7 +79,7 @@ namespace ConcertService.Repositories
             return await _concertsCollection.CountDocumentsAsync(FilterDefinition<Concert>.Empty) == 0;
         }
 
-        public async Task<List<Concert>> GetConcertsToDisableBookingAsync(System.DateTime currentTimeUtc)
+        public async Task<List<Concert>> GetConcertsToDisableBookingAsync(DateTime currentTimeUtc)
         {
             _logger.LogInformation("Fetching concerts to disable booking, started before or at {CurrentTimeUtc} and still enabled.", currentTimeUtc);
             var filter = Builders<Concert>.Filter.And(
