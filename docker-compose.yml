@@ -1,13 +1,13 @@
-version: '3.8'
+version: "3.8"
 
 services:
   mongodb:
     image: mongo:latest
     container_name: concertbooking_mongo
     ports:
-      - "27017:27017" # Exposes MongoDB to your host machine on the default port
+      - "27017:27017"
     volumes:
-      - mongo_data:/data/db # Persists MongoDB data
+      - mongo_data:/data/db
     networks:
       - concert_network
 
@@ -15,24 +15,23 @@ services:
     image: redis:latest
     container_name: concertbooking_redis
     ports:
-      - "6379:6379" # Exposes Redis to your host machine on the default port
+      - "6379:6379"
     volumes:
-      - redis_data:/data # Persists Redis data
+      - redis_data:/data
     networks:
       - concert_network
 
   authservice:
     container_name: concertbooking_auth_service
     build:
-      context: ./src/AuthService # Path to the Dockerfile for AuthService
+      context: ./src/AuthService
       dockerfile: Dockerfile
     ports:
-      - "5001:8080" # HostPort:ContainerPort (maps container's 8080 to host's 5001)
-      # - "7001:8081" # If you're exposing HTTPS from the container as well
+      - "5001:8080"
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:8080
-      - MongoDbSettings__ConnectionString=mongodb://mongodb:27017 # Example of overriding
+      - MongoDbSettings__ConnectionString=mongodb://mongodb:27017
       - MongoDbSettings__DatabaseName=AuthDB
       - JwtSettings__Key=$2y$10$4IOQmxzFKEGs/.n90bpF6eki.ZNM4XbZkjLhyC2fULFinrN831c1q
       - JwtSettings__Issuer=http://authservice:8080
@@ -41,9 +40,6 @@ services:
       - mongodb
     networks:
       - concert_network
-    # volumes:
-    #   - ./src/AuthService:/app # Optional: Mount source code for hot reload during dev (if configured)
-    #   - /app/bin # Ensure bin/obj are not overwritten by host volume if using hot reload
 
   concertservice:
     container_name: concertbooking_concert_service
@@ -55,16 +51,12 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:8080
-      # - ConnectionStrings__MongoDb=mongodb://mongodb:27017
-      # - Redis__ConnectionString=redis:6379
+
     depends_on:
       - mongodb
       - redis
     networks:
       - concert_network
-    # volumes:
-    #   - ./src/ConcertService:/app
-    #   - /app/bin
 
   bookingservice:
     container_name: concertbooking_booking_service
@@ -76,24 +68,18 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:8080
-      # - ConnectionStrings__MongoDb=mongodb://mongodb:27017
-      # - Redis__ConnectionString=redis:6379
-      # - Auth__Authority=http://authservice:8080 # Internal URL for token validation
     depends_on:
       - mongodb
       - redis
-      - authservice # Booking might need to call Auth for token validation or user info
+      - authservice
     networks:
       - concert_network
-    # volumes:
-    #   - ./src/BookingService:/app
-    #   - /app/bin
 
-networks: # Define the network for services to communicate
+networks:
   concert_network:
     driver: bridge
 
-volumes: # Define named volumes for data persistence
+volumes:
   mongo_data:
     driver: local
   redis_data:
