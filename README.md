@@ -115,7 +115,7 @@ This backend system provides the core infrastructure for booking concert tickets
 
 1.  **Clone the Repository:**
     ```bash
-    git clone <your-repository-url>
+    git clone [<your-repository-url>](https://github.com/hoangvm2307/concert-booking)
     cd ConcertBookingPlatform
     ```
 
